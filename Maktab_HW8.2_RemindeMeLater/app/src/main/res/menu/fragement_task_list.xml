@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+  <item
+    android:id="@+id/menu_item_new_task"
+    android:title="@string/menu_item_new_task"
+    app:showAsAction="collapseActionView">
+
+  </item>
+  <item
+    android:id="@+id/menu_item_clear_list"
+    android:title="@string/menu_item_clear_list"
+    app:showAsAction="collapseActionView">
+
+  </item>
+  <item
+    android:id="@+id/menu_item_show_subtitle"
+    android:title="@string/task_count_subtitle_hide"
+    app:showAsAction="collapseActionView">
+
+  </item>
+</menu>
