@@ -1,7 +1,5 @@
 package com.example.smmousavi.maktab_hw82_remindemelater.mvc.model;
 
-import android.util.Log;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -18,15 +16,13 @@ public class TaskList {
     allTasksList = new ArrayList<>();
     doneTaskList = new ArrayList<>();
     undoneTaskList = new ArrayList<>();
-
   }// end of TasList()
 
 
-  public static TaskList getInstanc() {
-    if (mTasks == null) {
+  public static TaskList getInstance() {
+    if (mTasks == null)
       mTasks = new TaskList();
 
-    }
     return mTasks;
   }// end of getInstance()
 
@@ -42,30 +38,25 @@ public class TaskList {
 
 
   public void addTask(Task task) {
-    if (!taskExists(task, allTasksList)) {
-      Log.i("TaskListTag", "added to all tasks");
+    if (!taskExists(task, allTasksList))
       allTasksList.add(task);
-    }
   }
+
 
   public List<Task> getAllTasks() {
     return allTasksList;
   }
 
-  public void removeTask(Task task) {
-    if (taskExists(task, allTasksList)) {
-      Log.i("TaskListTag", "removed from all tasks");
-      allTasksList.remove(task);
-    }
 
+  public void removeTask(Task task) {
+    if (taskExists(task, allTasksList))
+      allTasksList.remove(task);
   }
 
 
   public void addDoneTask(Task task) {
-    if (!taskExists(task, doneTaskList)) {
-      Log.i("TaskListTag", "added to done task");
+    if (!taskExists(task, doneTaskList))
       doneTaskList.add(task);
-    }
   }
 
 
@@ -75,19 +66,14 @@ public class TaskList {
 
 
   public void removeDoneTask(Task task) {
-    if (taskExists(task, doneTaskList)) {
-      Log.i("TaskListTag", "removed from done task");
+    if (taskExists(task, doneTaskList))
       doneTaskList.remove(task);
-    }
-
   }
 
 
   public void addUndoneTask(Task task) {
-    if (!taskExists(task, undoneTaskList)) {
-      Log.i("TaskListTag", "added to undone task");
+    if (!taskExists(task, undoneTaskList))
       undoneTaskList.add(task);
-    }
   }
 
 
@@ -97,12 +83,10 @@ public class TaskList {
 
 
   public void removeUndoneTask(Task task) {
-    if (taskExists(task, undoneTaskList)) {
-      Log.i("TaskListTag", "removed from undone task");
+    if (taskExists(task, undoneTaskList))
       undoneTaskList.remove(task);
-    }
-
   }
+
 
   private boolean taskExists(Task targetTask, List<Task> tasksList) {
     for (Task task : tasksList) {
@@ -111,7 +95,7 @@ public class TaskList {
 
     }
     return false;
-
   }
 
-}// end of TaskList{}
+
+}

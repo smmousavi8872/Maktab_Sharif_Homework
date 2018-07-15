@@ -1,12 +1,15 @@
 package com.example.smmousavi.maktab_hw82_remindemelater.mvc.controller.fragments;
 
 
-import android.app.AlertDialog;
+import android.app.Activity;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -21,6 +24,7 @@ import com.example.smmousavi.maktab_hw82_remindemelater.mvc.model.Task;
 import com.example.smmousavi.maktab_hw82_remindemelater.mvc.model.TaskList;
 
 import java.text.DateFormat;
+import java.util.Date;
 import java.util.UUID;
 
 /**
@@ -29,6 +33,10 @@ import java.util.UUID;
 public class TaskDetailFragment extends Fragment {
 
   public static final String ARGS_TASK_ID = "args_task_id";
+  public static final String DIALOG_DATE_TAG = "dialog_date_tag";
+  public static final String DIALOG_TIME_TAG = "dialog_time_tag";
+  public static final int REQUEST_DATE = 0;
+  public static final int REQUEST_TIME = 1;
 
   private EditText mDecriptionEdt;
   private Button mDateBtn;
@@ -51,19 +59,50 @@ public class TaskDetailFragment extends Fragment {
     TaskDetailFragment fragment = new TaskDetailFragment();
     fragment.setArguments(args);
     return fragment;
-  }
+  } // end of newInstance()
 
 
   public TaskDetailFragment() {
     /* Required empty public constructor */
-  }
+
+  }// end of TaskDetailFragment()
+
+
+  @Override
+  public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    if (resultCode != Activity.RESULT_OK)
+      return;
+
+    if (requestCode == REQUEST_DATE) {
+      Date date = (Date) data.getSerializableExtra(DatePickerFragment.EXTRA_DATE);
+      updateDate(date);
+
+      mClickedTask.setDate(date);
+
+    } else if (requestCode == REQUEST_TIME) {
+      Date time = (Date) data.getSerializableExtra(TimePickerFragment.EXTRA_TIME);
+      updateTime(time);
+
+      mClickedTask.setTime(time);
+    }
+  }// end of onActivityResult()
+
+
+  private void updateDate(Date taskDate) {
+    String dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM).format(taskDate);
+    mDateBtn.setText(dateFormat);
+  } // end of updateDate()
+
+
+  private void updateTime(Date taskTime) {
+    String timeFromat = DateFormat.getTimeInstance(DateFormat.SHORT).format(taskTime);
+    mTimeBtn.setText(timeFromat);
+  }// end of updateTime()
 
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-
-
   }// end of onCreate()
 
 
@@ -72,7 +111,52 @@ public class TaskDetailFragment extends Fragment {
                            Bundle savedInstanceState) {
     /* Inflate the layout for this fragment */
     View view = inflater.inflate(R.layout.fragment_task_detail, container, false);
+    getViews(view);
 
+    Bundle bundle = getArguments();
+    taskId = (UUID) bundle.getSerializable(ARGS_TASK_ID);
+    if (taskId == null) {
+      mClickedTask = new Task();
+      prepareForAdd();
+
+    } else {
+      mClickedTask = TaskList.getInstance().getTask(taskId);
+      prepareForUpdate();
+
+    }
+    mDateBtn.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        Date taskDate = mClickedTask.getDate();
+        if (taskDate == null)
+          taskDate = new Date();
+
+        FragmentManager fm = getFragmentManager();
+        DatePickerFragment dialog = DatePickerFragment.newInstance(taskDate);
+        dialog.setTargetFragment(TaskDetailFragment.this, REQUEST_DATE);
+        dialog.show(fm, DIALOG_DATE_TAG);
+
+      }
+    });
+    mTimeBtn.setOnClickListener(new View.OnClickListener() {
+      @Override
+      public void onClick(View view) {
+        Date taskTime = mClickedTask.getTime();
+        if (taskTime == null)
+          taskTime = new Date();
+
+        FragmentManager fm = getFragmentManager();
+        TimePickerFragment dialog = TimePickerFragment.newInstance(taskTime);
+        dialog.setTargetFragment(TaskDetailFragment.this, REQUEST_TIME);
+        dialog.show(fm, DIALOG_TIME_TAG);
+      }
+    });
+
+    return view;
+  }// end of onCreateView()
+
+
+  public void getViews(View view) {
     mutableViews = new View[]{
       mDecriptionEdt = view.findViewById(R.id.edt_detail_description),
       mDateBtn = view.findViewById(R.id.btn_detail_date),
@@ -84,48 +168,33 @@ public class TaskDetailFragment extends Fragment {
     mEditBtn = view.findViewById(R.id.btn_detail_edit);
     mDoneBtn = view.findViewById(R.id.btn_detail_done);
     mDeleteBtn = view.findViewById(R.id.btn_detail_delete);
-
-    Bundle bundle = getArguments();
-    taskId = (UUID) bundle.getSerializable(ARGS_TASK_ID);
-    if (taskId == null) {
-      mClickedTask = new Task();
-      prepareForAdd();
-
-    } else {
-      mClickedTask = TaskList.getInstanc().getTask(taskId);
-      prepareForUpdate();
-
-    }
-    return view;
-
-  }// end of onCreateView()
+  }// end of getViews()
 
 
   public void prepareForAdd() {
     mEditBtn.setVisibility(View.GONE);
     mDeleteBtn.setVisibility(View.GONE);
     mDoneBtn.setText(R.string.add_task_button_title);
-
+    final TaskList taskList = TaskList.getInstance();
 
     mDoneBtn.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
-        onCompleteTaskDetail();
-        if (!mClickedTask.getTitle().equals("")) {
-          TaskList.getInstanc().addTask(mClickedTask);
+        String titleFromat = mDecriptionEdt.getText().toString().trim();
+        if (!titleFromat.equals("")) {
+          onCompleteTaskDetail();
+
+          taskList.addTask(mClickedTask);
           if (!mClickedTask.isDone())
-            TaskList.getInstanc().addUndoneTask(mClickedTask);
+            taskList.addUndoneTask(mClickedTask);
 
           else
-            TaskList.getInstanc().addDoneTask(mClickedTask);
+            taskList.addDoneTask(mClickedTask);
 
           getActivity().finish();
-          Toast.makeText(getActivity(), R.string.new_task_added_toast_alert, Toast.LENGTH_SHORT).show();
-
-        } else {
-          Snackbar.make(getView(), R.string.title_is_not_set_snackbar_alert, Snackbar.LENGTH_SHORT).show();
-
-        }
+          makeToastAlert(R.string.new_task_added_toast_alert);
+        } else
+          makeSnackbarAert(R.string.title_is_not_set_snackbar_alert);
       }
     });
   }// end of prepareForAdd()
@@ -136,10 +205,14 @@ public class TaskDetailFragment extends Fragment {
 
     mDoneBtn.setVisibility(View.GONE);
     mDecriptionEdt.setText(mClickedTask.getTitle());
-    String dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM).format(mClickedTask.getDate());
-    String timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT).format(mClickedTask.getTime());
-    mDateBtn.setText(dateFormat);
-    mTimeBtn.setText(timeFormat);
+    Date taskDate = mClickedTask.getDate();
+    Date taskTime = mClickedTask.getTime();
+    if (taskDate != null)
+      updateDate(taskDate);
+
+    if (taskTime != null)
+      updateTime(taskTime);
+
     mSetDoneChk.setChecked(mClickedTask.isDone());
     mSetImportantChk.setChecked(mClickedTask.isImportant());
 
@@ -151,15 +224,15 @@ public class TaskDetailFragment extends Fragment {
         mDeleteBtn.setVisibility(View.GONE);
         mDoneBtn.setVisibility(View.VISIBLE);
         mDoneBtn.setText(R.string.update_task_button_title);
+
         mSetDoneChk.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
           @Override
           public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
             if (isChecked)
-              Snackbar.make(getView(), "Task is set done", Snackbar.LENGTH_SHORT).show();
+              makeSnackbarAert(R.string.set_done_snackbar_alert);
 
             else
-              Snackbar.make(getView(), "Task is set undone", Snackbar.LENGTH_SHORT).show();
-
+              makeSnackbarAert(R.string.set_undone_snackbar_alert);
           }
         });
 
@@ -167,24 +240,25 @@ public class TaskDetailFragment extends Fragment {
           @Override
           public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
             if (isChecked)
-              Snackbar.make(getView(), "Task is set as Important", Snackbar.LENGTH_SHORT).show();
-
+              makeSnackbarAert(R.string.set_important_snackbar_alert);
           }
         });
 
         mDoneBtn.setOnClickListener(new View.OnClickListener() {
           @Override
           public void onClick(View view) {
-            onCompleteTaskDetail();
-            if (!mClickedTask.getTitle().equals(""))
+            String titleFromat = mDecriptionEdt.getText().toString().trim();
+            if (!titleFromat.equals("")) {
+              onCompleteTaskDetail();
+              makeToastAlert(R.string.task_update_toast_alert);
               getActivity().finish();
 
-            else
-              Snackbar.make(getView(), R.string.title_is_not_set_snackbar_alert, Snackbar.LENGTH_SHORT).show();
+            } else
+              makeSnackbarAert(R.string.title_is_not_set_snackbar_alert);
           }
         });
       }
-    });// end on mEditBtn.setOnClickListener()
+    });/* end on mEditBtn.setOnClickListener() */
 
     mDeleteBtn.setOnClickListener(new View.OnClickListener() {
       @Override
@@ -192,7 +266,6 @@ public class TaskDetailFragment extends Fragment {
         popAlertDialog();
       }
     });
-
   }// end of prepareForUpdate()
 
 
@@ -204,61 +277,50 @@ public class TaskDetailFragment extends Fragment {
         @Override
         public void onClick(DialogInterface dialogInterface, int i) {
           if (mClickedTask.isDone())
-            TaskList.getInstanc().removeDoneTask(mClickedTask);
+            TaskList.getInstance().removeDoneTask(mClickedTask);
 
           else
-            TaskList.getInstanc().removeUndoneTask(mClickedTask);
+            TaskList.getInstance().removeUndoneTask(mClickedTask);
 
-          TaskList.getInstanc().removeTask(mClickedTask);
-          Toast.makeText(getActivity(), R.string.task_remove_toast_alert, Toast.LENGTH_SHORT).show();
+          TaskList.getInstance().removeTask(mClickedTask);
+          makeToastAlert(R.string.task_remove_toast_alert);
           getActivity().finish();
         }
       }).show();
-
   }// end of popAlertDialog()
 
 
   private void onCompleteTaskDetail() {
-
     mClickedTask.setTitle(mDecriptionEdt.getText().toString());
-
-    mDateBtn.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-
-        /* ??? should get completed_date picker dialog??? */
-      }
-    });
-
-    mTimeBtn.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-
-        /* ??? should get completed_time picker dialog??? */
-      }
-    });
-
     if (mSetDoneChk.isChecked()) {
       mClickedTask.setDone(true);
-      TaskList.getInstanc().addDoneTask(mClickedTask);
-      TaskList.getInstanc().removeUndoneTask(mClickedTask);
+      TaskList.getInstance().addDoneTask(mClickedTask);
+      TaskList.getInstance().removeUndoneTask(mClickedTask);
 
     } else {
       mClickedTask.setDone(false);
-      TaskList.getInstanc().removeDoneTask(mClickedTask);
-      TaskList.getInstanc().addUndoneTask(mClickedTask);
+      TaskList.getInstance().removeDoneTask(mClickedTask);
+      TaskList.getInstance().addUndoneTask(mClickedTask);
 
     }
-
     mClickedTask.setImportant(mSetImportantChk.isChecked());
-
   }// end of onCompletedTaskDetialListener()
+
 
   public void setEnabledViews(boolean isEnabled) {
     for (View view : mutableViews)
       view.setEnabled(isEnabled);
-
   }// end of setEnabledViews()
+
+
+  private void makeToastAlert(int alertText) {
+    Toast.makeText(getActivity(), alertText, Toast.LENGTH_SHORT).show();
+  }
+
+
+  private void makeSnackbarAert(int alertText) {
+    Snackbar.make(getView(), alertText, Snackbar.LENGTH_SHORT).show();
+  }
 
 
 }

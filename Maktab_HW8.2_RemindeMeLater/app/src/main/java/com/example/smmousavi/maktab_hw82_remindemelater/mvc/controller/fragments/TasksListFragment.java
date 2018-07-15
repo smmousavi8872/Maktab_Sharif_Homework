@@ -17,10 +17,12 @@ import android.widget.TextView;
 
 import com.example.smmousavi.maktab_hw82_remindemelater.R;
 import com.example.smmousavi.maktab_hw82_remindemelater.mvc.controller.activities.TaskDetailActivity;
+import com.example.smmousavi.maktab_hw82_remindemelater.mvc.controller.activities.TaskDetailPagerActivity;
 import com.example.smmousavi.maktab_hw82_remindemelater.mvc.model.Task;
 import com.example.smmousavi.maktab_hw82_remindemelater.mvc.model.TaskList;
 
 import java.text.DateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -49,14 +51,16 @@ public class TasksListFragment extends Fragment {
     TasksListFragment fragment = new TasksListFragment();
     fragment.setArguments(args);
     return fragment;
+
   }// end of newInstance()
 
 
   @Override
   public void onResume() {
     super.onResume();
-    updateListUI(); /* XXX crashes in landscape XXX : mRecyclerView is null */
-  }
+    updateListUI();
+
+  }// end of onResume()
 
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -71,12 +75,10 @@ public class TasksListFragment extends Fragment {
                            Bundle savedInstanceState) {
     /* Inflate the layout for this fragment */
     View view = inflater.inflate(R.layout.fragment_tasks_list, container, false);
-
-    mRecyclerView = view.findViewById(R.id.recycler_view);
-    mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
-    mFab = view.findViewById(R.id.fab_all_tasks);
+    getViews(view);
 
     updateListUI();
+
 
     if (mTaskListId == 1 || mTaskListId == 2) {
       mFab.setVisibility(View.GONE);
@@ -87,13 +89,19 @@ public class TasksListFragment extends Fragment {
       public void onClick(View view) {
         Intent intent = TaskDetailActivity.newIntent(getActivity(), null);
         startActivity(intent);
+
       }
     });
-
-
     return view;
 
   }// end of onCreateView
+
+
+  public void getViews(View view) {
+    mRecyclerView = view.findViewById(R.id.recycler_view);
+    mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+    mFab = view.findViewById(R.id.fab_all_tasks);
+  }// end of getViews()
 
 
   public void updateListUI() {
@@ -101,17 +109,17 @@ public class TasksListFragment extends Fragment {
     mTaskListId = bundle.getInt(ARGS_TASK_LIST_ID);
     switch (mTaskListId) {
       case 0:
-        mTasksList = TaskList.getInstanc().getAllTasks();
+        mTasksList = TaskList.getInstance().getAllTasks();
         break;
       case 1:
-        mTasksList = TaskList.getInstanc().getUndoneTasks();
+        mTasksList = TaskList.getInstance().getUndoneTasks();
         break;
       case 2:
-        mTasksList = TaskList.getInstanc().getDoneTasks();
+        mTasksList = TaskList.getInstance().getDoneTasks();
         break;
     }
     mTaskAdapter = new TaskAdapter(mTasksList);
-    if (mRecyclerView != null) /* to avoid crashing after screen rotation*/
+    if (mRecyclerView != null)/* XXX crashes in rotation : mRecyclerView is null XXX*/
       mRecyclerView.setAdapter(mTaskAdapter);
 
   }// end of updateListUI()
@@ -133,7 +141,7 @@ public class TasksListFragment extends Fragment {
       itemView.setOnClickListener(new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-          Intent intent = TaskDetailActivity.newIntent(getActivity(), mClikedTask.getId());
+          Intent intent = TaskDetailPagerActivity.newIntent(getActivity(), mClikedTask.getId(), mTaskListId);
           startActivity(intent);
         }
       });
@@ -142,24 +150,38 @@ public class TasksListFragment extends Fragment {
         @Override
         public void onClick(View view) {
           mClikedTask.setDone(true);
-          TaskList.getInstanc().addDoneTask(mClikedTask);
-          TaskList.getInstanc().removeUndoneTask(mClikedTask);
+          TaskList.getInstance().addDoneTask(mClikedTask);
+          TaskList.getInstance().removeUndoneTask(mClikedTask);
           Snackbar.make(getView(), String.format("'%s' is set done", mClikedTask.getTitle()), Snackbar.LENGTH_SHORT).show();
           updateListUI();
-
         }
       });
-
     }/* end of TaskViewHolder() */
 
     public void bindeTaskViewHolder(Task task) {
       mClikedTask = task;
       mTaskTitleTxt.setText(task.getTitle());
-      String dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM).format(task.getDate());
-      String timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT).format(task.getTime());
-      mTaskDateAndTimeTxt.setText(dateFormat + ", " + timeFormat);
+      Date taskDate = task.getDate();
+      Date taskTime = task.getTime();
+
+      if (taskDate != null & taskTime != null) {
+        String dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM).format(taskDate);
+        String timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT).format(taskTime);
+        mTaskDateAndTimeTxt.setText(dateFormat + ", " + timeFormat);
+
+      } else if (taskDate != null && taskTime == null) {
+        String dateFormat = DateFormat.getDateInstance(DateFormat.MEDIUM).format(taskDate);
+        mTaskDateAndTimeTxt.setText(dateFormat);
+
+      } else if (taskDate == null && taskTime != null) {
+        String timeFormat = DateFormat.getTimeInstance(DateFormat.SHORT).format(taskTime);
+        mTaskDateAndTimeTxt.setText(timeFormat);
+
+      } else
+        mTaskDateAndTimeTxt.setText(R.string.task_item_subtitle_date_time_not_set);
+
       if (task.isDone())
-        mTaskIsDoneBtn.setVisibility(View.GONE);
+        mTaskIsDoneBtn.setVisibility(View.INVISIBLE);
 
     }/* end of bindeTaskViewHolder() */
 
