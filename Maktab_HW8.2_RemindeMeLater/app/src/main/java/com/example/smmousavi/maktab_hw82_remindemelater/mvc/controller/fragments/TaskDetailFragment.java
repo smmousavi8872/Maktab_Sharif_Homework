@@ -13,6 +13,7 @@ import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.TranslateAnimation;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -43,12 +44,17 @@ public class TaskDetailFragment extends Fragment {
   private Button mTimeBtn;
   private CheckBox mSetImportantChk;
   private CheckBox mSetDoneChk;
-  private View[] mutableViews;
+  private CheckBox mSetAlarmChk;
+  private View[] arrViews;
   private Button mEditBtn;
   private Button mDoneBtn;
   private Button mDeleteBtn;
   private UUID taskId;
   private Task mClickedTask;
+  private Date mTaskDate;
+  private Date mTaskTime;
+  private boolean doneStatusChanged;
+  private boolean isNewTask;
 
 
   public static TaskDetailFragment newInstance(UUID taskId) {
@@ -77,13 +83,14 @@ public class TaskDetailFragment extends Fragment {
       Date date = (Date) data.getSerializableExtra(DatePickerFragment.EXTRA_DATE);
       updateDate(date);
 
-      mClickedTask.setDate(date);
+      mTaskDate = date;
 
     } else if (requestCode == REQUEST_TIME) {
       Date time = (Date) data.getSerializableExtra(TimePickerFragment.EXTRA_TIME);
       updateTime(time);
 
-      mClickedTask.setTime(time);
+      mTaskTime = time;
+
     }
   }// end of onActivityResult()
 
@@ -115,15 +122,20 @@ public class TaskDetailFragment extends Fragment {
 
     Bundle bundle = getArguments();
     taskId = (UUID) bundle.getSerializable(ARGS_TASK_ID);
+
+
     if (taskId == null) {
       mClickedTask = new Task();
       prepareForAdd();
+      isNewTask = true;
 
     } else {
-      mClickedTask = TaskList.getInstance().getTask(taskId);
+      mClickedTask = TaskList.getInstance(getActivity()).getTask(taskId);
       prepareForUpdate();
+      isNewTask = false;
 
     }
+
     mDateBtn.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
@@ -157,12 +169,13 @@ public class TaskDetailFragment extends Fragment {
 
 
   public void getViews(View view) {
-    mutableViews = new View[]{
+    arrViews = new View[]{
       mDecriptionEdt = view.findViewById(R.id.edt_detail_description),
       mDateBtn = view.findViewById(R.id.btn_detail_date),
       mTimeBtn = view.findViewById(R.id.btn_detail_time),
       mSetImportantChk = view.findViewById(R.id.chk_detail_important),
       mSetDoneChk = view.findViewById(R.id.chk_detail_done),
+      mSetAlarmChk = view.findViewById(R.id.chk_detail_set_alarm)
 
     };
     mEditBtn = view.findViewById(R.id.btn_detail_edit);
@@ -175,26 +188,25 @@ public class TaskDetailFragment extends Fragment {
     mEditBtn.setVisibility(View.GONE);
     mDeleteBtn.setVisibility(View.GONE);
     mDoneBtn.setText(R.string.add_task_button_title);
-    final TaskList taskList = TaskList.getInstance();
 
     mDoneBtn.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
         String titleFromat = mDecriptionEdt.getText().toString().trim();
         if (!titleFromat.equals("")) {
-          onCompleteTaskDetail();
+          registerTaskDetails();
 
-          taskList.addTask(mClickedTask);
+          TaskList.getInstance(getActivity()).addTask(mClickedTask);
           if (!mClickedTask.isDone())
-            taskList.addUndoneTask(mClickedTask);
+            TaskList.getInstance(getActivity()).addUndoneTask(mClickedTask);
 
           else
-            taskList.addDoneTask(mClickedTask);
+            TaskList.getInstance(getActivity()).addDoneTask(mClickedTask);
 
           getActivity().finish();
-          makeToastAlert(R.string.new_task_added_toast_alert);
+          makeToastAlert(R.string.new_task_added_alert);
         } else
-          makeSnackbarAert(R.string.title_is_not_set_snackbar_alert);
+          makeSnackbarAlert(R.string.title_is_not_set_alert);
       }
     });
   }// end of prepareForAdd()
@@ -215,13 +227,14 @@ public class TaskDetailFragment extends Fragment {
 
     mSetDoneChk.setChecked(mClickedTask.isDone());
     mSetImportantChk.setChecked(mClickedTask.isImportant());
+    mSetAlarmChk.setChecked(mClickedTask.isAlarmRequired());
 
     mEditBtn.setOnClickListener(new View.OnClickListener() {
       @Override
       public void onClick(View view) {
         setEnabledViews(true);
-        mEditBtn.setVisibility(View.GONE);
-        mDeleteBtn.setVisibility(View.GONE);
+        hideAnimation(mEditBtn);
+        hideAnimation(mDeleteBtn);
         mDoneBtn.setVisibility(View.VISIBLE);
         mDoneBtn.setText(R.string.update_task_button_title);
 
@@ -229,10 +242,10 @@ public class TaskDetailFragment extends Fragment {
           @Override
           public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
             if (isChecked)
-              makeSnackbarAert(R.string.set_done_snackbar_alert);
+              makeSnackbarAlert(R.string.set_done_alert);
 
             else
-              makeSnackbarAert(R.string.set_undone_snackbar_alert);
+              makeSnackbarAlert(R.string.set_undone_alert);
           }
         });
 
@@ -240,7 +253,7 @@ public class TaskDetailFragment extends Fragment {
           @Override
           public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
             if (isChecked)
-              makeSnackbarAert(R.string.set_important_snackbar_alert);
+              makeSnackbarAlert(R.string.set_important_alert);
           }
         });
 
@@ -249,12 +262,32 @@ public class TaskDetailFragment extends Fragment {
           public void onClick(View view) {
             String titleFromat = mDecriptionEdt.getText().toString().trim();
             if (!titleFromat.equals("")) {
-              onCompleteTaskDetail();
-              makeToastAlert(R.string.task_update_toast_alert);
+              int doneStatusChangeId = registerTaskDetails();
+
+              if (doneStatusChanged) {
+                if (doneStatusChangeId == 1) {
+                  TaskList.getInstance(getActivity()).addDoneTask(mClickedTask);
+                  TaskList.getInstance(getActivity()).removeUndoneTask(mClickedTask);
+                  doneStatusChanged = false;
+
+                } else if (doneStatusChangeId == 2) {
+                  TaskList.getInstance(getActivity()).addUndoneTask(mClickedTask);
+                  TaskList.getInstance(getActivity()).removeDoneTask(mClickedTask);
+                  doneStatusChanged = false;
+                }
+              } else {
+                if (mClickedTask.isDone())
+                  TaskList.getInstance(getActivity()).updateDoneTask(mClickedTask);
+
+                else
+                  TaskList.getInstance(getActivity()).updateUndoneTask(mClickedTask);
+              }
+              TaskList.getInstance(getActivity()).updateTask(mClickedTask);
+              makeToastAlert(R.string.task_update_alert);
               getActivity().finish();
 
             } else
-              makeSnackbarAert(R.string.title_is_not_set_snackbar_alert);
+              makeSnackbarAlert(R.string.title_is_not_set_alert);
           }
         });
       }
@@ -269,47 +302,71 @@ public class TaskDetailFragment extends Fragment {
   }// end of prepareForUpdate()
 
 
+  private int registerTaskDetails() {
+    boolean doneChange = mClickedTask.isDone();
+    int doneStatusChangeId = 0;
+
+    mClickedTask.setTitle(mDecriptionEdt.getText().toString());
+    mClickedTask.setDate(mTaskDate);
+    mClickedTask.setTime(mTaskTime);
+    mClickedTask.setImportant(mSetImportantChk.isChecked());
+    mClickedTask.setDone(mSetDoneChk.isChecked());
+    mClickedTask.setAlarmRequired(mSetAlarmChk.isChecked());
+
+    if (!isNewTask) {
+      if (mClickedTask.isDone() && !doneChange) {
+        doneStatusChanged = true;
+        doneStatusChangeId = 1;
+
+      } else if (!mClickedTask.isDone() && doneChange) {
+        doneStatusChanged = true;
+        doneStatusChangeId = 2;
+
+      }
+    }
+    return doneStatusChangeId;
+  }// end of onCompletedTaskDetialListener()
+
+
+  private void hideAnimation(View view) {
+    TranslateAnimation animate = new TranslateAnimation(0, 0, 0, view.getWidth());
+    animate.setDuration(500);
+    animate.setFillAfter(true);
+    view.startAnimation(animate);
+    view.setVisibility(View.GONE);
+  }
+
+
   private void popAlertDialog() {
     new AlertDialog.Builder(getContext())
-      .setTitle(R.string.delete_task_alert_dialog_title)
+      .setTitle(R.string.delete_task_dialog_title)
       .setNegativeButton(android.R.string.cancel, null)
       .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
         @Override
         public void onClick(DialogInterface dialogInterface, int i) {
           if (mClickedTask.isDone())
-            TaskList.getInstance().removeDoneTask(mClickedTask);
+            TaskList.getInstance(getActivity()).removeDoneTask(mClickedTask);
 
           else
-            TaskList.getInstance().removeUndoneTask(mClickedTask);
+            TaskList.getInstance(getActivity()).removeUndoneTask(mClickedTask);
 
-          TaskList.getInstance().removeTask(mClickedTask);
-          makeToastAlert(R.string.task_remove_toast_alert);
+          TaskList.getInstance(getActivity()).removeTask(mClickedTask);
+          makeToastAlert(R.string.task_delete_alert);
           getActivity().finish();
         }
       }).show();
-  }// end of popAlertDialog()
-
-
-  private void onCompleteTaskDetail() {
-    mClickedTask.setTitle(mDecriptionEdt.getText().toString());
-    if (mSetDoneChk.isChecked()) {
-      mClickedTask.setDone(true);
-      TaskList.getInstance().addDoneTask(mClickedTask);
-      TaskList.getInstance().removeUndoneTask(mClickedTask);
-
-    } else {
-      mClickedTask.setDone(false);
-      TaskList.getInstance().removeDoneTask(mClickedTask);
-      TaskList.getInstance().addUndoneTask(mClickedTask);
-
-    }
-    mClickedTask.setImportant(mSetImportantChk.isChecked());
-  }// end of onCompletedTaskDetialListener()
+  }// end of showAlertDialog()
 
 
   public void setEnabledViews(boolean isEnabled) {
-    for (View view : mutableViews)
-      view.setEnabled(isEnabled);
+    for (View view : arrViews) {
+      if (isEnabled) {
+        view.animate().alpha(1.0f);
+
+      } else {
+        view.setAlpha(0.5f);
+      }
+    }
   }// end of setEnabledViews()
 
 
@@ -318,7 +375,7 @@ public class TaskDetailFragment extends Fragment {
   }
 
 
-  private void makeSnackbarAert(int alertText) {
+  private void makeSnackbarAlert(int alertText) {
     Snackbar.make(getView(), alertText, Snackbar.LENGTH_SHORT).show();
   }
 

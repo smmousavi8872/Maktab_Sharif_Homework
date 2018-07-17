@@ -46,10 +46,16 @@ public class TaskDetailPagerActivity extends AppCompatActivity {
 
     viewPager = (ViewPager) findViewById(R.id.task_detail_view_pager);
 
-    TaskList instance = TaskList.getInstance();
+    TaskList instance = TaskList.getInstance(TaskDetailPagerActivity.this);
     Bundle extras = getIntent().getExtras();
     taskId = (UUID) extras.getSerializable(EXTRA_TASK_ID);
     taskListId = extras.getInt(EXTRA_TASK_LIST_ID);
+
+    if (taskId != null)
+      setTitle("Update Task");
+
+    else if (taskId == null)
+      setTitle("New Task");
 
     switch (taskListId) {
       case 0:
@@ -65,7 +71,7 @@ public class TaskDetailPagerActivity extends AppCompatActivity {
     viewPager.setAdapter(new FragmentStatePagerAdapter(getSupportFragmentManager()) {
       @Override
       public Fragment getItem(int position) {
-        UUID id = tasksList.get(position).getId();
+        UUID id = tasksList.get(position).getTaskId();
         return TaskDetailFragment.newInstance(id);
       }
 
@@ -75,9 +81,19 @@ public class TaskDetailPagerActivity extends AppCompatActivity {
       }
 
     }); /* end of setAdapter({...}) */
-    viewPager.setCurrentItem(tasksList.indexOf(instance.getTask(taskId)));
+    viewPager.setCurrentItem(findCurrentItem());
 
   }// end of onCreate()
+
+
+  private int findCurrentItem() {
+    for (int i = 0; i < tasksList.size(); i++) {
+      if (tasksList.get(i).getTaskId().equals(taskId))
+        return i;
+
+    }
+    return -1;
+  }// end of findCurrentItem()
 
 
 }

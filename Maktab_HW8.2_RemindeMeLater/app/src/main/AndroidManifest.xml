@@ -10,15 +10,22 @@
     android:supportsRtl="true"
     android:theme="@style/AppTheme">
     <activity android:name=".mvc.controller.activities.TabLayoutActivity">
+
+    </activity>
+    <activity
+      android:name=".mvc.controller.activities.TaskDetailActivity"
+      android:parentActivityName=".mvc.controller.activities.TabLayoutActivity">
+    </activity>
+    <activity
+      android:name=".mvc.controller.activities.TaskDetailPagerActivity"
+      android:parentActivityName=".mvc.controller.activities.TabLayoutActivity">
+    </activity>
+    <activity android:name=".mvc.controller.activities.UserLoginPagerActivity">
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
 
         <category android:name="android.intent.category.LAUNCHER"/>
       </intent-filter>
-    </activity>
-    <activity android:name=".mvc.controller.activities.TaskDetailActivity">
-    </activity>
-    <activity android:name=".mvc.controller.activities.TaskDetailPagerActivity">
     </activity>
   </application>
 

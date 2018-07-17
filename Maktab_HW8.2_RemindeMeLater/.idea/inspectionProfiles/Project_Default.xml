@@ -5,6 +5,7 @@
     <inspection_tool class="AndroidLintAlwaysShowAction" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="AndroidLintGoogleAppIndexingWarning" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="AndroidLintHardcodedText" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="AndroidLintRecycle" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="AndroidLintSetTextI18n" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="AndroidLintSpUsage" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="AndroidLintUselessParent" enabled="false" level="WARNING" enabled_by_default="false" />
@@ -30,8 +31,13 @@
       <option name="processLiterals" value="true" />
       <option name="processComments" value="true" />
     </inspection_tool>
+    <inspection_tool class="TryFinallyCanBeTryWithResources" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="TryWithIdenticalCatches" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="UNCHECKED_WARNING" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="UnnecessaryLocalVariable" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="m_ignoreImmediatelyReturnedVariables" value="false" />
+      <option name="m_ignoreAnnotatedVariables" value="false" />
+    </inspection_tool>
     <inspection_tool class="WeakerAccess" enabled="false" level="WARNING" enabled_by_default="false">
       <option name="SUGGEST_PACKAGE_LOCAL_FOR_MEMBERS" value="true" />
       <option name="SUGGEST_PACKAGE_LOCAL_FOR_TOP_CLASSES" value="true" />
